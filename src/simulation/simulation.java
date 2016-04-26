@@ -1,78 +1,53 @@
 package simulation;
 
-import com.sun.j3d.utils.universe.SimpleUniverse;
-import javax.media.j3d.BranchGroup;
-import javax.media.j3d.*;
-import javax.vecmath.*;
-import com.sun.j3d.utils.geometry.Box;
-import com.sun.j3d.utils.behaviors.vp.OrbitBehavior;
 import graphs.*;
 
-import java.awt.GraphicsConfiguration;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.Observable;
-import com.sun.j3d.loaders.objectfile.ObjectFile;
 
-
-import java.applet.Applet;
-import java.awt.BorderLayout;
-import java.awt.GraphicsConfiguration;
 import java.io.FileNotFoundException;
-import java.net.MalformedURLException;
-import java.net.URL;
 
-import javax.media.j3d.Alpha;
-import javax.media.j3d.AmbientLight;
-import javax.media.j3d.Background;
 import javax.media.j3d.BoundingSphere;
-import javax.media.j3d.BranchGroup;
-import javax.media.j3d.Canvas3D;
-import javax.media.j3d.DirectionalLight;
-import javax.media.j3d.RotationInterpolator;
 import javax.media.j3d.Transform3D;
 import javax.media.j3d.TransformGroup;
+import javax.media.j3d.BranchGroup;
+import javax.media.j3d.*;
+
 import javax.vecmath.Color3f;
-import javax.vecmath.Point3d;
 import javax.vecmath.Vector3f;
 
 import com.sun.j3d.loaders.IncorrectFormatException;
 import com.sun.j3d.loaders.ParsingErrorException;
 import com.sun.j3d.loaders.Scene;
-import com.sun.j3d.loaders.objectfile.ObjectFile;
-import com.sun.j3d.utils.applet.MainFrame;
-import com.sun.j3d.utils.behaviors.vp.OrbitBehavior;
-import com.sun.j3d.utils.universe.PlatformGeometry;
 import com.sun.j3d.utils.universe.SimpleUniverse;
-import com.sun.j3d.utils.universe.ViewingPlatform;
+import com.sun.j3d.loaders.objectfile.ObjectFile;
+import com.sun.j3d.utils.geometry.Box;
+import com.sun.j3d.utils.behaviors.vp.OrbitBehavior;
 
 /**
  * Created by david on 23/04/16.
  */
 public class simulation extends Observable implements Runnable {
 
-    private Scene glider;
+    private final Vector3f MIN_SIM_BOUNDS = new Vector3f(-0.15f, -0.15f, 0.1f);
+    private final Vector3f MAX_SIM_BOUNDS = new Vector3f(0.15f, 0.15f, 0.2f);
 
     private BranchGroup scene;
+    private Node glider; // Structure for storing glider obj file.
     public int numGliderPosUpdates; // Param used to store num times glider position updated.
-    private final Vector3f minSimBounds = new Vector3f(-0.15f, -0.15f, 0.1f);
-    private final Vector3f maxSimBounds = new Vector3f(0.15f, 0.15f, 0.2f);
-    private int simFidelity;
-    private Vector<Vector3f> gliderPositionPoints;
+    private int simFidelity; // Number of discrete simulation steps
+    private Vector<Vector3f> gliderPositionPoints; // Array of glider positions that drive the simulation
     private Vector3f startPoint;
     private Vector3f endPoint;
-    private SimulationParameters simulationParameters;
-
-    private boolean noTriangulate = false;
-    private boolean noStripify = false;
-    private double creaseAngle = 60.0;
+    private SimulationParameters simulationParameters; // Reference to simulation parameters class.
 
     public simulation(int simFidelity) {
 
-
         this.simFidelity = simFidelity; // num steps between glider start and end position.
 
+        // Load glider object
         this.glider = gliderLoader();
 
         // Get simulation start and end points.
@@ -101,7 +76,6 @@ public class simulation extends Observable implements Runnable {
         OrbitBehavior orbit = new OrbitBehavior(u.getCanvas(), OrbitBehavior.REVERSE_ROTATE);
         orbit.setSchedulingBounds(new BoundingSphere());
         u.getViewingPlatform().setViewPlatformBehavior(orbit);
-        //u.getViewingPlatform().setNominalViewingTransform();
 
         u.addBranchGraph(scene);
 
@@ -140,9 +114,9 @@ public class simulation extends Observable implements Runnable {
     private Vector3f getRandPointUsingSimBounds() {
 
         Random random = new Random();
-        float randX = minSimBounds.getX() + random.nextFloat() * (maxSimBounds.getX() - minSimBounds.getX());
-        float randY = minSimBounds.getY() + random.nextFloat() * (maxSimBounds.getY() - minSimBounds.getY());
-        float randZ = minSimBounds.getZ() + random.nextFloat() * (maxSimBounds.getZ() - minSimBounds.getZ());
+        float randX = MIN_SIM_BOUNDS.getX() + random.nextFloat() * (MAX_SIM_BOUNDS.getX() - MIN_SIM_BOUNDS.getX());
+        float randY = MIN_SIM_BOUNDS.getY() + random.nextFloat() * (MAX_SIM_BOUNDS.getY() - MIN_SIM_BOUNDS.getY());
+        float randZ = MIN_SIM_BOUNDS.getZ() + random.nextFloat() * (MAX_SIM_BOUNDS.getZ() - MIN_SIM_BOUNDS.getZ());
 
         Vector3f randVector = new Vector3f(randX, randY, randZ);
 
@@ -156,23 +130,6 @@ public class simulation extends Observable implements Runnable {
 
         objRoot.addChild(this.createLandscape());
         objRoot.addChild(this.createGlider());
-
-        // Bounding Sphere for light creation
-        /*BoundingSphere bounds = new BoundingSphere(new Point3d(0.0,0.0,0.0), 100.0);
-
-        Color3f light1Color = new Color3f(1.0f, 0.0f, 0.2f);
-        Vector3f light1Direction = new Vector3f(4.0f, -7.0f, -12.0f);
-        DirectionalLight light1 = new DirectionalLight(light1Color, light1Direction);
-        light1.setInfluencingBounds(bounds);
-
-        objRoot.addChild(light1);
-
-        // Set up the ambient light
-        Color3f ambientColor = new Color3f(1.0f, 1.0f, 1.0f);
-        AmbientLight ambientLightNode = new AmbientLight(ambientColor);
-        ambientLightNode.setInfluencingBounds(bounds);
-
-        objRoot.addChild(ambientLightNode);*/
 
         return objRoot;
     }
@@ -193,10 +150,6 @@ public class simulation extends Observable implements Runnable {
         Transform3D pos1 = new Transform3D();
         pos1.setTranslation(new Vector3f(0.0f,0.0f,0.0f));
 
-        // Set rotation.
-        //Matrix3f rotMatrix = new Matrix3f(0f, 0f, 1f, 0f, 1f, 0f, -1f, 0f, 0f);
-        //pos1.setRotation(rotMatrix);
-
         objTrans.setTransform(pos1);
         objTrans.addChild(box);
 
@@ -213,20 +166,7 @@ public class simulation extends Observable implements Runnable {
                 new Color3f(23.5f, 23.4f, 20.6f), ColoringAttributes.NICEST));
 
         Box box = new Box(0.003000f, 0.003000f, 0.000480f, appearance);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        //Node
 
         TransformGroup objTrans = new TransformGroup();
         objTrans.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE); // Specifies that the node allows writing its object's transform information
@@ -240,22 +180,17 @@ public class simulation extends Observable implements Runnable {
         //pos1.setRotation(rotMatrix);
 
         objTrans.setTransform(pos1);
-        //objTrans.addChild(box);
-
-        BranchGroup gliderBranchGroup = glider.getSceneGroup();
-
-        Node tempChild = glider.getSceneGroup().getChild(0);
-        glider.getSceneGroup().removeAllChildren();
-
-
-        objTrans.addChild(tempChild);
-
+        objTrans.addChild(box);
 
         return objTrans;
 
     }
 
-    private Scene gliderLoader() {
+    private Node gliderLoader() {
+
+        boolean noTriangulate = false;
+        boolean noStripify = false;
+        double creaseAngle = 60.0;
 
         int flags = ObjectFile.RESIZE;
         if (!noTriangulate)
@@ -277,7 +212,11 @@ public class simulation extends Observable implements Runnable {
             System.err.println(e);
             System.exit(1);
         }
-        return s;
+
+        // Node structure for storing glider obj
+        Node tempChild = s.getSceneGroup().getChild(0);
+
+        return tempChild;
     }
 
     public void updateGliderPosition(Vector3f position) {
@@ -296,10 +235,6 @@ public class simulation extends Observable implements Runnable {
         Transform3D pos1 = new Transform3D();
         pos1.setTranslation(position);
 
-        // Set rotation.
-        //Matrix3f rotMatrix = new Matrix3f(0f, 0f, 1f, 0f, 1f, 0f, -1f, 0f, 0f);
-        //pos1.setRotation(rotMatrix);
-
         objTrans.setTransform(pos1);
         objTrans.addChild(box);
 
@@ -309,8 +244,6 @@ public class simulation extends Observable implements Runnable {
         scene.addChild(childBranchGroup);
 
         numGliderPosUpdates++;
-
-        System.out.println(scene.numChildren());
 
     }
 
@@ -343,8 +276,6 @@ public class simulation extends Observable implements Runnable {
 
         simulation currentSimulation = new simulation(30);
         currentSimulation.run();
-
-        //AccelerationGraph test = new AccelerationGraph();
 
     }
 }
