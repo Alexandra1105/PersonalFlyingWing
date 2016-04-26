@@ -16,6 +16,7 @@ import javax.media.j3d.BranchGroup;
 import javax.media.j3d.*;
 
 import javax.vecmath.Color3f;
+import javax.vecmath.Matrix3f;
 import javax.vecmath.Vector3f;
 
 import com.sun.j3d.loaders.IncorrectFormatException;
@@ -23,7 +24,6 @@ import com.sun.j3d.loaders.ParsingErrorException;
 import com.sun.j3d.loaders.Scene;
 import com.sun.j3d.utils.universe.SimpleUniverse;
 import com.sun.j3d.loaders.objectfile.ObjectFile;
-import com.sun.j3d.utils.geometry.Box;
 import com.sun.j3d.utils.behaviors.vp.OrbitBehavior;
 
 /**
@@ -35,7 +35,7 @@ public class simulation extends Observable implements Runnable {
     private final Vector3f MAX_SIM_BOUNDS = new Vector3f(0.15f, 0.15f, 0.2f);
 
     private BranchGroup scene;
-    private Node glider; // Structure for storing glider obj file.
+    private Shape3D glider; // Structure for storing glider obj file.
     public int numGliderPosUpdates; // Param used to store num times glider position updated.
     private int simFidelity; // Number of discrete simulation steps
     private Vector<Vector3f> gliderPositionPoints; // Array of glider positions that drive the simulation
@@ -48,7 +48,7 @@ public class simulation extends Observable implements Runnable {
         this.simFidelity = simFidelity; // num steps between glider start and end position.
 
         // Load glider object
-        this.glider = gliderLoader();
+        this.glider = objLoader("AssyFull.obj");
 
         // Get simulation start and end points.
         startPoint = getRandPointUsingSimBounds();
@@ -60,9 +60,12 @@ public class simulation extends Observable implements Runnable {
         // Create instance for storing and computing simulation parameters.
         this.simulationParameters = new SimulationParameters();
 
+        // Create scene and add relevant capabilities
         scene = createSceneGraph();
-        numGliderPosUpdates = 0;
+        scene.setCapability(TransformGroup.ALLOW_CHILDREN_WRITE);
         scene.setCapability(BranchGroup.ALLOW_CHILDREN_EXTEND);
+
+        numGliderPosUpdates = 0;
 
         gliderPositionPoints = getSimGliderPositionPoints();
 
@@ -83,7 +86,6 @@ public class simulation extends Observable implements Runnable {
 
     void createGraphObservers() {
 
-        this.addObserver(new TimeGraph());
         this.addObserver(new VelocityGraph());
         this.addObserver(new AccelerationGraph());
     }
@@ -129,20 +131,19 @@ public class simulation extends Observable implements Runnable {
         BranchGroup objRoot = new BranchGroup();
 
         objRoot.addChild(this.createLandscape());
-        objRoot.addChild(this.createGlider());
 
         return objRoot;
     }
 
     private TransformGroup createLandscape() {
 
-        // Create a simple shape leaf node, add it to the scene graph.
         Appearance appearance = new Appearance();
         appearance.setCapability(Appearance.ALLOW_COLORING_ATTRIBUTES_WRITE);
         appearance.setColoringAttributes(new ColoringAttributes(
                 new Color3f(24.0f, 23.6f, 0.17f), ColoringAttributes.NICEST));
 
-        Box box = new Box(0.3000f, 0.3000f, 0.0480f, appearance);
+        Shape3D environment = objLoader("mars_environ.obj");
+        environment.setAppearance(appearance);
 
         TransformGroup objTrans = new TransformGroup();
         objTrans.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE); // Specifies that the node allows writing its object's transform information
@@ -151,42 +152,14 @@ public class simulation extends Observable implements Runnable {
         pos1.setTranslation(new Vector3f(0.0f,0.0f,0.0f));
 
         objTrans.setTransform(pos1);
-        objTrans.addChild(box);
+
+        objTrans.addChild(environment);
 
         return objTrans;
 
     }
 
-    private TransformGroup createGlider() {
-
-        // Create a simple shape leaf node, add it to the scene graph.
-        Appearance appearance = new Appearance();
-        appearance.setCapability(Appearance.ALLOW_COLORING_ATTRIBUTES_WRITE);
-        appearance.setColoringAttributes(new ColoringAttributes(
-                new Color3f(23.5f, 23.4f, 20.6f), ColoringAttributes.NICEST));
-
-        Box box = new Box(0.003000f, 0.003000f, 0.000480f, appearance);
-        //Node
-
-        TransformGroup objTrans = new TransformGroup();
-        objTrans.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE); // Specifies that the node allows writing its object's transform information
-
-        Transform3D pos1 = new Transform3D();
-        // Set starting position for glider
-        pos1.setTranslation(startPoint);
-
-        // Set rotation.
-        //Matrix3f rotMatrix = new Matrix3f(0f, 0f, 1f, 0f, 1f, 0f, -1f, 0f, 0f);
-        //pos1.setRotation(rotMatrix);
-
-        objTrans.setTransform(pos1);
-        objTrans.addChild(box);
-
-        return objTrans;
-
-    }
-
-    private Node gliderLoader() {
+    private Shape3D objLoader(String filename) {
 
         boolean noTriangulate = false;
         boolean noStripify = false;
@@ -201,7 +174,7 @@ public class simulation extends Observable implements Runnable {
                 (float) (creaseAngle * Math.PI / 180.0));
         Scene s = null;
         try {
-            s = f.load("AssyFull.obj");
+            s = f.load(filename);
         } catch (FileNotFoundException e) {
             System.err.println(e);
             System.exit(1);
@@ -213,8 +186,8 @@ public class simulation extends Observable implements Runnable {
             System.exit(1);
         }
 
-        // Node structure for storing glider obj
-        Node tempChild = s.getSceneGroup().getChild(0);
+        Shape3D tempChild = (Shape3D)s.getSceneGroup().getChild(0);
+        s.getSceneGroup().removeAllChildren();
 
         return tempChild;
     }
@@ -230,16 +203,27 @@ public class simulation extends Observable implements Runnable {
         appearance.setColoringAttributes(new ColoringAttributes(
                 new Color3f(23.5f, 23.4f, 20.6f), ColoringAttributes.NICEST));
 
-        Box box = new Box(0.003000f, 0.003000f, 0.000480f, appearance);
-
+        // Update glider position.
         Transform3D pos1 = new Transform3D();
         pos1.setTranslation(position);
 
+        pos1.setRotation(new Matrix3f(1, 0, 0,
+                                    0, 0, -1,
+                                    0, 1, 0));
+
+        // Rescale the glider
+        pos1.setScale(0.05);
+
         objTrans.setTransform(pos1);
-        objTrans.addChild(box);
+
+        // Colour glider.
+        glider.setAppearance(appearance);
+
+        objTrans.addChild(this.glider.cloneTree());
 
         // Create BranchGroup to house new glider object.
         BranchGroup childBranchGroup = new BranchGroup();
+        childBranchGroup.setCapability(BranchGroup.ALLOW_DETACH);
         childBranchGroup.addChild(objTrans);
         scene.addChild(childBranchGroup);
 
@@ -252,12 +236,6 @@ public class simulation extends Observable implements Runnable {
 
         for(int i = 0; i < this.gliderPositionPoints.size(); i++) {
 
-            try {
-                Thread.sleep(1000);
-            } catch (Exception e) {
-                ;
-            }
-
             Vector3f currentGliderPosition = this.gliderPositionPoints.get(i);
 
             HashMap<String, Float> currentSimParams = this.simulationParameters.
@@ -268,6 +246,15 @@ public class simulation extends Observable implements Runnable {
             notifyObservers(currentSimParams);
 
             this.updateGliderPosition(currentGliderPosition);
+
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                ;
+            }
+
+            // Remove previous glider.
+            scene.removeChild(1);
         }
 
     }
