@@ -1,5 +1,6 @@
 package simulation;
 
+import com.sun.j3d.utils.geometry.Primitive;
 import graphs.*;
 
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import javax.media.j3d.*;
 
 import javax.vecmath.Color3f;
 import javax.vecmath.Matrix3f;
+import javax.vecmath.Point3d;
 import javax.vecmath.Vector3f;
 
 import com.sun.j3d.loaders.IncorrectFormatException;
@@ -69,11 +71,6 @@ public class simulation extends Observable implements Runnable {
 
         gliderPositionPoints = getSimGliderPositionPoints();
 
-        // Create canvas to associate with universe
-        //GraphicsConfiguration config = SimpleUniverse.getPreferredConfiguration();
-        //Canvas3D canvas = new Canvas3D(config);
-
-        //SimpleUniverse u = new SimpleUniverse(canvas);
         SimpleUniverse u = new SimpleUniverse();
 
         OrbitBehavior orbit = new OrbitBehavior(u.getCanvas(), OrbitBehavior.REVERSE_ROTATE);
@@ -132,15 +129,48 @@ public class simulation extends Observable implements Runnable {
 
         objRoot.addChild(this.createLandscape());
 
+        // Create light
+
+        float red = 249.0f / 256.0f;
+        float green = 244.0f / 256.0f;
+        float blue = 94.0f / 256.0f;
+
+        Color3f light1Color = new Color3f(red, green, blue);
+
+        BoundingSphere bounds = new BoundingSphere(new Point3d(0.0,0.0,0.0), 100);
+
+        Vector3f light1Direction = new Vector3f(4.0f, -7.0f, -12.0f);
+
+        DirectionalLight light1 = new DirectionalLight(light1Color, light1Direction);
+
+        light1.setInfluencingBounds(bounds);
+
+        objRoot.addChild(light1);
+
+        AmbientLight ambientLight = new AmbientLight(new Color3f(.5f, .5f, .5f));
+
+        ambientLight.setInfluencingBounds(bounds);
+
+        objRoot.addChild(ambientLight);
+
         return objRoot;
     }
 
     private TransformGroup createLandscape() {
 
+        Color3f blackMaterial = new Color3f(0.0f, 0.0f, 0.0f);
+        Color3f redMaterial = new Color3f(1.0f, 0.87f, 0.6f);
+
+        float red = 219.0f / 256.0f;
+        float green = 121.0f / 256.0f;
+        float blue = 35.0f / 256.0f;
+
         Appearance appearance = new Appearance();
         appearance.setCapability(Appearance.ALLOW_COLORING_ATTRIBUTES_WRITE);
         appearance.setColoringAttributes(new ColoringAttributes(
-                new Color3f(24.0f, 23.6f, 0.17f), ColoringAttributes.NICEST));
+                new Color3f(red, green, blue), ColoringAttributes.NICEST));
+
+        appearance.setMaterial(new Material(redMaterial, blackMaterial, redMaterial, blackMaterial, 0.75f));
 
         Shape3D environment = objLoader("mars_environ.obj");
         environment.setAppearance(appearance);
@@ -197,11 +227,15 @@ public class simulation extends Observable implements Runnable {
         TransformGroup objTrans = new TransformGroup();
         objTrans.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE); // Specifies that the node allows writing its object's transform information
 
+        float red = 118.0f / 256.0f;
+        float green = 112.0f / 256.0f;
+        float blue = 100.0f / 256.0f;
+
         // Create a simple shape leaf node, add it to the scene graph.
         Appearance appearance = new Appearance();
         appearance.setCapability(Appearance.ALLOW_COLORING_ATTRIBUTES_WRITE);
         appearance.setColoringAttributes(new ColoringAttributes(
-                new Color3f(23.5f, 23.4f, 20.6f), ColoringAttributes.NICEST));
+                new Color3f(red, green, blue), ColoringAttributes.NICEST));
 
         // Update glider position.
         Transform3D pos1 = new Transform3D();
@@ -254,7 +288,7 @@ public class simulation extends Observable implements Runnable {
             }
 
             // Remove previous glider.
-            scene.removeChild(1);
+            scene.removeChild(3);
         }
 
     }
