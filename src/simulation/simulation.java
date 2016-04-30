@@ -1,6 +1,5 @@
 package simulation;
 
-import com.sun.j3d.utils.geometry.Primitive;
 import graphs.*;
 
 import java.util.HashMap;
@@ -50,7 +49,7 @@ public class simulation extends Observable implements Runnable {
         this.simFidelity = simFidelity; // num steps between glider start and end position.
 
         // Load glider object
-        this.glider = objLoader("AssyFull.obj");
+        this.glider = objLoader("AnimationAssembly.obj");
 
         // Get simulation start and end points.
         startPoint = getRandPointUsingSimBounds();
@@ -85,6 +84,8 @@ public class simulation extends Observable implements Runnable {
 
         this.addObserver(new VelocityGraph());
         this.addObserver(new AccelerationGraph());
+        this.addObserver(new ThrustGraph());
+
     }
 
     Vector<Vector3f> getSimGliderPositionPoints() {
@@ -227,9 +228,9 @@ public class simulation extends Observable implements Runnable {
         TransformGroup objTrans = new TransformGroup();
         objTrans.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE); // Specifies that the node allows writing its object's transform information
 
-        float red = 118.0f / 256.0f;
-        float green = 112.0f / 256.0f;
-        float blue = 100.0f / 256.0f;
+        float red = 1.0f;
+        float green = 1.0f;
+        float blue = 1.0f;
 
         // Create a simple shape leaf node, add it to the scene graph.
         Appearance appearance = new Appearance();
@@ -273,7 +274,7 @@ public class simulation extends Observable implements Runnable {
             Vector3f currentGliderPosition = this.gliderPositionPoints.get(i);
 
             HashMap<String, Float> currentSimParams = this.simulationParameters.
-                    getCurrentSimulationParameters(currentGliderPosition);
+                    getCurrentSimulationParameters(currentGliderPosition.length());
 
             // Update graphs.
             setChanged();
@@ -295,7 +296,7 @@ public class simulation extends Observable implements Runnable {
 
     public static void main( String[] args ) {
 
-        simulation currentSimulation = new simulation(30);
+        simulation currentSimulation = new simulation(50);
         currentSimulation.run();
 
     }

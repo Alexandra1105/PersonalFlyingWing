@@ -1,126 +1,72 @@
 package simulation;
 
-import org.jfree.data.time.Millisecond;
-
 import java.util.HashMap;
-import java.util.Vector;
-import javax.vecmath.*;
 
-import static java.lang.System.currentTimeMillis;
+import java.lang.Math;
+
+import java.util.Random;
 
 /**
  * Created by david on 23/04/16.
  */
 public class SimulationParameters {
 
-    private Vector3f previousPosition;
-    private Vector3f previousVelocity;
-    private Vector3f previousAcceleration;
+    private float previousPosition;
+    private float previousVelocity;
+    private float previousAcceleration;
 
-    private final float Cl = 1.1282f;
-    private final float Cd = 0.1096f;
-    private final float p = 0.02f;
-    private final float S = 8.0f;
-    private final float m = 350.0f; // mass kg.
-    private final float T = 2600f; // Newtons.
+    private final float COEF_LIFT = 1.1282f; // coefficient of lift
+    private final float COEF_DRAG = 0.1096f; // coefficient of drag
+    private final float DENSITY = 0.02f;
+    private final float WING_AREA = 8.0f;
+    private final float MASS = 350.0f; // mass kg.
 
-    private final float delta_t = 1f; // 1 sec.
+    //private final float MAX_THRUST = 2600f; // Newtons.
+
+    private final float DELTA_T = 1f; // 1 sec.
 
 
     SimulationParameters() {
 
-        this.previousPosition = new Vector3f();
-        this.previousVelocity = new Vector3f();
-        this.previousAcceleration = new Vector3f();
+        this.previousPosition = new Float(0);
+        this.previousVelocity = new Float(0);
+        this.previousAcceleration = new Float(0);
     }
 
-    private Vector3f getCurrentAcceleration() {
+    private Float getCurrentVelocity(Float currentGliderPosition) {
 
-        Vector3f acceleration = new Vector3f();
-
-        Vector3f tempVector = new Vector3f(this.calculateL() / m,
-                (this.T - calculateD()) / m,
-                0);
-
-        tempVector.sub(new Vector3f(0f, 0f, -0.37f));
-
-        acceleration.add(tempVector);
-
-
-
-
-
-
-        return acceleration;
+        return (currentGliderPosition - previousPosition) / DELTA_T;
     }
 
-    private Vector3f getCurrentVelocity() {
+    private double getCurrentLift(Float currentGliderPosition) {
 
-        Vector3f velocity = new Vector3f();
-        Vector3f tempVector;
+        double currentVelocity = getCurrentVelocity(currentGliderPosition);
 
-        tempVector = previousAcceleration;
-        tempVector.scale(delta_t);
-
-        velocity.add(previousVelocity);
-        velocity.add(tempVector);
-
-        return velocity;
+        return 0.5f * COEF_LIFT * DENSITY * (Math.pow(currentVelocity, 2)) * WING_AREA;
     }
 
-    private float getCurrentTime() {
+    private double getCurrentDrag(Float currentGliderPosition) {
 
-        float time = 0f;
-        //TODO
-        ;
+        double currentVelocity = getCurrentVelocity(currentGliderPosition);
 
-        return time;
+        return 0.5f * COEF_DRAG * DENSITY * (Math.pow(currentVelocity, 2)) * WING_AREA;
     }
 
-    private float calculateL() {
-
-
-
-        return 0f;
-    }
-
-    private float calculateD() {
-
-
-
-        return 0f;
-    }
-
-    public HashMap<String, Float> getCurrentSimulationParameters(Vector3f currrentGliderPosition) {
+    public HashMap<String, Float> getCurrentSimulationParameters(Float currentGliderPosition) {
 
         HashMap<String, Float> currentSimParams = new HashMap<>();
 
-        Vector3f currentAcceleration = this.getCurrentAcceleration();
-        Vector3f currentVelocity = this.getCurrentVelocity();
-        float currentTime = this.getCurrentTime();
+        // For purposes of simulation, generate random acc, vel and thrust values.
+        Random random = new Random();
 
+        float currentAcceleration = random.nextFloat() * 5.0f;
+        float currentVelocity = random.nextFloat() * 200;
+        float currentThrust = random.nextFloat() * 3000;
 
-
-
-
-
-        // Testing code
-        currentAcceleration = new Vector3f(2f, 2f, 2f);
-
-        // Testing code
-        currentVelocity = new Vector3f(5f, 5f, 5f);
-
-
-
-
-
-
-
-        currentSimParams.put("acceleration", currentAcceleration.length());
-        currentSimParams.put("velocity", currentVelocity.length());
-        currentSimParams.put("time", currentTime);
-
-
+        // Place current params in data structure for consumption by graphs.
+        currentSimParams.put("acceleration", currentAcceleration);
+        currentSimParams.put("velocity", currentVelocity);
+        currentSimParams.put("thrust", currentThrust);
 
         // Update internal params for next function call.
         this.previousAcceleration = currentAcceleration;
