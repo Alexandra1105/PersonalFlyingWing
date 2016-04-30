@@ -21,20 +21,20 @@ import javax.swing.JPanel;
 /**
  * Created by david on 24/04/16.
  */
-public class AccelerationGraph extends ApplicationFrame implements Observer  {
+public class ThrustGraph extends ApplicationFrame implements Observer  {
 
     TimeSeries series;
 
-    public AccelerationGraph() {
+    public ThrustGraph() {
 
-        super("Acceleration over time");
-        this.series = new TimeSeries("Acceleration over time");
+        super("Thrust over time");
+        this.series = new TimeSeries("Thrust over time");
         TimeSeriesCollection dataset = new TimeSeriesCollection(this.series);
 
         final JFreeChart chart = ChartFactory.createTimeSeriesChart(
-                "Acceleration over time",
+                "Thrust over time",
                 "Time(s)",
-                "Acceleration(m/s^2)",
+                "Thrust(N)",
                 dataset
         );
 
@@ -44,7 +44,7 @@ public class AccelerationGraph extends ApplicationFrame implements Observer  {
         axis.setFixedAutoRange(10000.0); // 10 seconds
 
         axis = plot.getRangeAxis();
-        axis.setRange(0.0, 10.0); // Acceleration
+        axis.setRange(0.0, 3000.0); // Thrust
 
         final ChartPanel chartPanel = new ChartPanel(chart);
         final JPanel content = new JPanel(new BorderLayout());
@@ -63,9 +63,9 @@ public class AccelerationGraph extends ApplicationFrame implements Observer  {
     public void update(Observable o, Object arg) {
 
         HashMap<String, Float> currentSimParams = (HashMap<String, Float>) arg;
-        float currentAcceleration = currentSimParams.get("acceleration");
+        float currentThrust = currentSimParams.get("thrust");
 
-        this.series.add(new Second(), currentAcceleration);
+        this.series.add(new Second(), currentThrust);
 
     }
 
